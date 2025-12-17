@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kokatlas – Çalışan Sürüm</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #000;
+      font-family: Arial, sans-serif;
+    }
+
+    #viewport {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      cursor: grab;
+      user-select: none;
+    }
+    #viewport:active { cursor: grabbing; }
+
+    #map {
+      width: 500%;
+      height: 100%;
+      display: flex;
+      transform-origin: center center;
+    }
+
+    .tile {
+      flex: 0 0 20%;
+      background: url('dunya-fiziki-haritasi-dilsiz-2196-1000-1000.jpg') center/100% 100% no-repeat;
+    }
+
+    #search-bar {
+      position: fixed;
+      top: 15px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 20;
+      background: rgba(0,0,0,0.75);
+      padding: 10px 16px;
+      border-radius: 10px;
+    }
+
+    #search-bar input {
+      width: 280px;
+      height: 34px;
+      border-radius: 6px;
+      border: none;
+      padding: 0 10px;
+      outline: none;
+      font-size: 14px;
+    }
+
+    #result {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #111;
+      border: 2px solid #444;
+      border-radius: 12px;
+      display: none;
+      z-index: 30;
+      max-width: 90vw;
+      color: #fff;
+      box-shadow: 0 0 30px rgba(0,0,0,0.85);
+    }
+
+    #result img {
+      max-width: 600px;
+      width: 100%;
+      border-radius: 10px 10px 0 0;
+      display: block;
+    }
+
+    #info {
+      padding: 15px;
+      line-height: 1.6;
+      font-size: 14px;
+    }
+
+    #close {
+      position: absolute;
+      top: 8px;
+      right: 12px;
+      cursor: pointer;
+      font-size: 18px;
+    }
+  </style>
+</head>
+<body>
+
+<div id="search-bar">
+  <input id="search" type="text" placeholder="Kelime ara ve Enter'a bas" />
+</div>
+
+<div id="viewport">
+  <div id="map">
+    <div class="tile"></div>
+    <div class="tile"></div>
+    <div class="tile"></div>
+    <div class="tile"></div>
+    <div class="tile"></div>
+  </div>
+</div>
+
+<div id="result">
+  <div id="close">✕</div>
+  <img id="result-img" />
+  <div id="info"></div>
+</div>
+
+<script>
+/* ================= DATABASE ================= */
+const database = {
+  "masa": { region:"İtalya", language:"İtalyanca", original:"mensa", image:"İtalya.jpg" },
+  "kapı": { region:"Orta Asya", language:"Eski Türkçe", original:"kap-", image:"Orta Asya.jpg" },
+  "şehir": { region:"İran", language:"Farsça", original:"şahr", image:"Iran.jpg" },
+  "kalem": { region:"Arap Yarımadası", language:"Arapça", original:"kalam", image:"Arap Yarımadası.jpg" },
+  "çiçek": { region:"Orta Asya", language:"Eski Türkçe", original:"çiçek", image:"Orta Asya.jpg" },
+  "gölge": { region:"Orta Asya", language:"Eski Türkçe", original:"kölige", image:"Orta Asya.jpg" },
+  "rüzgâr": { region:"İran", language:"Farsça", original:"rūzgār", image:"Iran.jpg" },
+  "bulut": { region:"Orta Asya", language:"Eski Türkçe", original:"bulıt", image:"Orta Asya.jpg" },
+  "nokta": { region:"Arap Yarımadası", language:"Arapça", original:"nukta", image:"Arap Yarımadası.jpg" },
+  "harita": { region:"Arap Yarımadası", language:"Arapça", original:"χarīṭa", image:"Arap Yarımadası.jpg" },
+  "pencere": { region:"İran", language:"Farsça", original:"pancar", image:"Iran.jpg" },
+  "sandalye": { region:"Arap Yarımadası", language:"Arapça", original:"ṣandal", image:"Arap Yarımadası.jpg" },
+  "kumsal": { region:"Türk Cumhuriyetleri", language:"Türkçe", original:"kum, sal", image:"Orta Asya.jpg" },
+  "dalga": { region:"Anadolu", language:"Türkiye Türkçesi", original:"dal-", image:"Anadolu.jpg" },
+  "tarla": { region:"Orta Asya", language:"Eski Türkçe", original:"tar-", image:"Orta Asya.jpg" },
+  "yoğurt": { region:"Orta Asya", language:"Eski Türkçe", original:"yoğur-", image:"Orta Asya.jpg" },
+  "bilezik": { region:"Orta Asya", language:"Eski Türkçe", original:"bilərsük", image:"Orta Asya.jpg" },
+  "yelken": { region:"Türk Cumhuriyetleri", language:"Türkçe", original:"yélegen", image:"Orta Asya.jpg" },
+  "merdiven": { region:"İran", language:"Farsça", original:"nardibān", image:"Iran.jpg" },
+  "süt": { region:"Orta Asya", language:"Eski Türkçe", original:"süt", image:"Orta Asya.jpg" },
+  "zeytin": { region:"Arap Yarımadası", language:"Arapça", original:"zaytūn", image:"Arap Yarımadası.jpg" },
+  "eldiven": { region:"İran", language:"Türkçe, Farsça", original:"el, tuvān", image:"Iran.jpg" },
+  "defter": { region:"Arap Yarımadası", language:"Arapça", original:"daftar", image:"Arap Yarımadası.jpg" },
+  "kitap": { region:"Arap Yarımadası", language:"Arapça", original:"kitāb", image:"Arap Yarımadası.jpg" },
+  "heykel": { region:"Arap Yarımadası", language:"Arapça", original:"haykal", image:"Arap Yarımadası.jpg" },
+  "fırtına": { region:"İtalya", language:"İtalyanca", original:"fortuna", image:"İtalya.jpg" },
+  "sütun": { region:"İran", language:"Farsça", original:"sutūn", image:"Iran.jpg" },
+  "boya": { region:"Orta Asya", language:"Eski Türkçe", original:"bodu-", image:"Orta Asya.jpg" },
+  "koku": { region:"Anadolu", language:"Türkçe", original:"koku", image:"Anadolu.jpg" },
+  "çivi": { region:"Orta Doğu", language:"Ana Türkçe", original:"çıw", image:"OrtaDogu.jpg" },
+  "perde": { region:"İran", language:"Farsça", original:"parde", image:"Iran.jpg" },
+  "köprü": { region:"Orta Asya", language:"Eski Türkçe", original:"köpür-", image:"Orta Asya.jpg" },
+  "araba": { region:"İran", language:"Hotan Saka", original:"rraha", image:"Iran.jpg" },
+  "buhar": { region:"Arap Yarımadası", language:"Arapça", original:"buχār", image:"Arap Yarımadası.jpg" },
+  "tünel": { region:"Fransa", language:"Fransızca", original:"tunnel", image:"Fransa.jpg" },
+  "teker": { region:"Türk Cumhuriyetleri", language:"Türkçe", original:"tekerlek", image:"Orta Asya.jpg" },
+  "liman": { region:"Yunanistan", language:"Yeni Yunanca", original:"liméni", image:"Yunanistan.jpg" },
+  "ada": { region:"Orta Doğu", language:"Ana Türkçe", original:"?", image:"OrtaDogu.jpg" },
+  "otobüs": { region:"Fransa", language:"Fransızca", original:"autobus", image:"Fransa.jpg" },
+  "balina": { region:"İtalya", language:"İtalyanca", original:"balena", image:"İtalya.jpg" },
+  "kutup": { region:"Arap Yarımadası", language:"Arapça", original:"quṭb", image:"Arap Yarımadası.jpg" },
+  "çekiç": { region:"İran", language:"Farsça", original:"çakuş", image:"Iran.jpg" },
+  "gülmek": { region:"Arap Yarımadası", language:"Arapça", original:"imlāˀ", image:"Arap Yarımadası.jpg" },
+  "ustura": { region:"İran", language:"Farsça", original:"usture", image:"Iran.jpg" },
+  "tabak": { region:"Arap Yarımadası", language:"Arapça", original:"ṭabak", image:"Arap Yarımadası.jpg" },
+  "fincan": { region:"Arap Yarımadası", language:"Arapça", original:"fincān", image:"Arap Yarımadası.jpg" },
+  "ütü": { region:"Orta Asya", language:"Eski Türkçe", original:"üt-", image:"Orta Asya.jpg" },
+  "çorap": { region:"Arap Yarımadası", language:"Arapça", original:"cirāb", image:"Arap Yarımadası.jpg" },
+  "gömlek": { region:"Orta Asya", language:"Eski Türkçe", original:"köŋlek", image:"Orta Asya.jpg" },
+  "yastık": { region:"Orta Asya", language:"Eski Türkçe", original:"yasta-", image:"Orta Asya.jpg" },
+  "çatı": { region:"Türk Cumhuriyetleri", language:"Türkçe", original:"çat-", image:"Orta Asya.jpg" },
+  "tuğla": { region:"Yunanistan", language:"Yeni Yunanca", original:"toúgla", image:"Yunanistan.jpg" },
+  "çimento": { region:"İtalya", language:"İtalyanca", original:"cimento", image:"İtalya.jpg" },
+  "bıçak": { region:"Orta Asya", language:"Eski Türkçe", original:"biç-", image:"Orta Asya.jpg" },
+  "kadeh": { region:"Arap Yarımadası", language:"Arapça", original:"qadah", image:"Arap Yarımadası.jpg" },
+  "melodi": { region:"Fransa", language:"Fransızca", original:"mélodie", image:"Fransa.jpg" },
+  "fener": { region:"Yunanistan", language:"Yeni Yunanca", original:"fanári", image:"Yunanistan.jpg" },
+  "buz": { region:"Orta Asya", language:"Eski Türkçe", original:"bu-", image:"Orta Asya.jpg" },
+  "saat": { region:"Arap Yarımadası", language:"Arapça", original:"sāʿa", image:"Arap Yarımadası.jpg" },
+  "pusula": { region:"İtalya", language:"İtalyanca", original:"bussola", image:"İtalya.jpg" },
+  "anahtar": { region:"Yunanistan", language:"Yeni Yunanca", original:"aniχtēri", image:"Yunanistan.jpg" },
+  "kuş": { region:"Orta Asya", language:"Eski Türkçe", original:"kuş", image:"Orta Asya.jpg" },
+  "balık": { region:"Orta Doğu", language:"Ana Türkçe", original:"bālık", image:"OrtaDogu.jpg" },
+  "kaplan": { region:"Orta Asya", language:"Eski Türkçe", original:"kap-", image:"Orta Asya.jpg" },
+  "ceylan": { region:"İran", language:"Farsça", original:"carān", image:"Iran.jpg" },
+  "geyik": { region:"Orta Asya", language:"Eski Türkçe", original:"keyik", image:"Orta Asya.jpg" },
+  "mısır": { region:"Suriye", language:"Arapça", original:"miṣr", image:"Suriye.jpg" },
+  "lahana": { region:"Yunanistan", language:"Yeni Yunanca", original:"láχano", image:"Yunanistan.jpg" },
+  "tencere": { region:"İran", language:"Farsça", original:"tangīre", image:"Iran.jpg" },
+  "tava": { region:"İran", language:"Farsça", original:"tābe", image:"Iran.jpg" },
+  "lamba": { region:"Yunanistan", language:"Yeni Yunanca", original:"lambá", image:"Yunanistan.jpg" },
+  "mercek": { region:"Türk Cumhuriyetleri", language:"Türkçe", original:"mercimek", image:"Orta Asya.jpg" },
+  "dürbün": { region:"İran", language:"Farsça", original:"dūr", image:"Iran.jpg" },
+  "radyo": { region:"İngiltere", language:"İngilizce", original:"radio", image:"Ingiltere.jpg" },
+  "kamera": { region:"İngiltere", language:"İngilizce", original:"camera", image:"Ingiltere.jpg" },
+  "ekran": { region:"Fransa", language:"Fransızca", original:"écran", image:"Fransa.jpg" },
+  "kağıt": { region:"İran", language:"Farsça", original:"kāġad", image:"Iran.jpg" },
+  "tuş": { region:"Fransa", language:"Fransızca", original:"touche", image:"Fransa.jpg" },
+  "çanta": { region:"İran", language:"Farsça", original:"tançe", image:"Iran.jpg" },
+  "kemer": { region:"İran", language:"Farsça", original:"kamar", image:"Iran.jpg" }
+};
+
+/* ================= MAP INTERACTION ================= */
+const map = document.getElementById('map');
+const viewport = document.getElementById('viewport');
+
+let scale = 1;
+let translateX = -window.innerWidth;
+let translateY = 0;
+let dragging = false;
+let lastX = 0;
+let lastY = 0;
+
+function updateTransform() {
+  map.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+}
+updateTransform();
+
+window.addEventListener('dragstart', e => e.preventDefault());
+
+viewport.addEventListener('mousedown', e => {
+  dragging = true;
+  lastX = e.clientX;
+  lastY = e.clientY;
+});
+
+window.addEventListener('mousemove', e => {
+  if (!dragging) return;
+
+  const dx = e.clientX - lastX;
+  const dy = e.clientY - lastY;
+
+  lastX = e.clientX;
+  lastY = e.clientY;
+
+  translateX += dx;
+
+  // Y ekseni kısıtı: scale 1 iken yukarı-aşağı hareket yok
+  if (scale > 1) {
+    translateY += dy;
+
+    // === Y ekseni sınırı: siyah alan görünmesin ===
+    const viewH = window.innerHeight;
+    const mapH = viewH * scale;
+    const maxY = (mapH - viewH) / 2;
+
+    if (translateY > maxY) translateY = maxY;
+    if (translateY < -maxY) translateY = -maxY;
+  } else {
+    translateY = 0;
+  }
+
+  const w = window.innerWidth;
+  if (translateX < -2 * w) translateX += w;
+  if (translateX > 0) translateX -= w;
+
+  updateTransform();
+});
+
+window.addEventListener('mouseup', () => dragging = false);
+window.addEventListener('mouseleave', () => dragging = false);
+
+viewport.addEventListener('wheel', e => {
+  e.preventDefault();
+
+  const MIN_SCALE = 1; // en geniş görünüm: 1 harita tam ekran
+  const MAX_SCALE = 4; // yakınlaştırma sınırı
+
+  scale += e.deltaY < 0 ? 0.1 : -0.1;
+  scale = Math.min(Math.max(scale, MIN_SCALE), MAX_SCALE);
+
+  updateTransform();
+}, { passive: false });
+
+/* ================= SEARCH ================= */
+const input = document.getElementById('search');
+const result = document.getElementById('result');
+const info = document.getElementById('info');
+const img = document.getElementById('result-img');
+
+input.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    const key = input.value.trim().toLowerCase();
+    if (!database[key]) {
+      alert('Kelime veri tabanında bulunamadı');
+      return;
+    }
+    const d = database[key];
+    img.src = d.image;
+    info.innerHTML = `<strong>Kelime:</strong> ${key}<br>
+                      <strong>Coğrafya:</strong> ${d.region}<br>
+                      <strong>Dil:</strong> ${d.language}<br>
+                      <strong>Özgün Hâli:</strong> ${d.original}`;
+    result.style.display = 'block';
+  }
+});
+
+document.getElementById('close').onclick = () => result.style.display = 'none';
+</script>
+</body>
+</html>
