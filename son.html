@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sonsuz Dünya Haritası</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #000;
+    }
+
+    #search-bar {
+      position: fixed;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      background: rgba(0,0,0,0.7);
+      padding: 10px 16px;
+      border-radius: 10px;
+    }
+
+    #search-bar input {
+      width: 300px;
+      height: 32px;
+      border-radius: 6px;
+      border: none;
+      outline: none;
+      padding: 0 10px;
+      font-size: 14px;
+    }
+
+    #viewport {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      cursor: grab;
+      user-select: none;
+    }
+
+    #viewport:active {
+      cursor: grabbing;
+    }
+
+    #map {
+      display: flex;
+      height: 100vh;
+      width: max-content;
+      will-change: transform;
+    }
+
+    .tile {
+      width: 100vw;
+      height: 100vh;
+      background-image: url('dunya-fiziki-haritasi-dilsiz-2196-1000-1000.jpg');
+      background-repeat: repeat-x; /* boşluk kesinlikle oluşmaz */
+      background-position: center center;
+      background-size: 100% 100%; /* siyah çizgi bırakmaz */
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="search-bar">
+    <input type="text" placeholder="Haritada ara..." />
+  </div>
+
+  <div id="viewport">
+    <div id="map">
+      <div class="tile"></div>
+      <div class="tile"></div>
+      <div class="tile"></div>
+    </div>
+  </div>
+
+  <script>
+    const map = document.getElementById('map');
+    const viewport = document.getElementById('viewport');
+
+    let scale = 1;
+    let translateX = -window.innerWidth;
+    let translateY = 0;
+
+    let isDragging = false;
+    let lastX = 0;
+    let lastY = 0;
+
+    function updateTransform() {
+      map.style.transform = `translate3d(${translateX}px, ${translateY}px, 0) scale(${scale})`;
+    }
+
+    updateTransform();
+
+    document.addEventListener('dragstart', e => e.preventDefault());
+
+    viewport.addEventListener('wheel', e => {
+      e.preventDefault();
+      const delta = e.deltaY < 0 ? 1 : -1;
+      scale += delta * 0.1;
+      scale = Math.min(Math.max(scale, 0.5), 5);
+      updateTransform();
+    }, { passive: false });
+
+    viewport.addEventListener('mousedown', e => {
+      e.preventDefault();
+      isDragging = true;
+      lastX = e.clientX;
+      lastY = e.clientY;
+    });
+
+    window.addEventListener('mousemove', e => {
+      if (!isDragging) return;
+
+      const dx = e.clientX - lastX;
+      const dy = e.clientY - lastY;
+
+      lastX = e.clientX;
+      lastY = e.clientY;
+
+      translateX += dx;
+      translateY += dy;
+
+      const tileWidth = window.innerWidth;
+
+      if (translateX > 0) {
+        translateX -= tileWidth;
+      } else if (translateX < -2 * tileWidth) {
+        translateX += tileWidth;
+      }
+
+      updateTransform();
+    });
+
+    function stopDrag() {
+      isDragging = false;
+    }
+
+    window.addEventListener('mouseup', stopDrag);
+    window.addEventListener('mouseleave', stopDrag);
+  
+    const searchInput = document.querySelector('#search-bar input');
+
+    const keywords = ['kalem', 'kitap', 'harita'];
+
+    searchInput.addEventListener('keydown', e => {
+      if (e.key !== 'Enter') return;
+
+      const value = searchInput.value.trim().toLowerCase();
+      if (!keywords.includes(value)) return;
+
+      showImageOverlay();
+    });
+
+    function showImageOverlay() {
+      if (document.getElementById('image-overlay')) return;
+
+      const overlay = document.createElement('div');
+      overlay.id = 'image-overlay';
+      overlay.style.position = 'fixed';
+      overlay.style.top = '0';
+      overlay.style.left = '0';
+      overlay.style.width = '100vw';
+      overlay.style.height = '100vh';
+      overlay.style.background = 'rgba(0,0,0,0.6)';
+      overlay.style.display = 'flex';
+      overlay.style.alignItems = 'center';
+      overlay.style.justifyContent = 'center';
+      overlay.style.zIndex = '20';
+
+      const img = document.createElement('img');
+      img.src = 'Arap Yarımadası.jpg';
+      img.style.maxWidth = '80vw';
+      img.style.maxHeight = '80vh';
+      img.style.border = '6px solid #fff';
+      img.style.borderRadius = '12px';
+      img.style.boxShadow = '0 20px 60px rgba(0,0,0,0.8)';
+
+      overlay.appendChild(img);
+
+      overlay.addEventListener('click', () => overlay.remove());
+
+      document.body.appendChild(overlay);
+    }
+
+  </script>
+</body>
+</html>
