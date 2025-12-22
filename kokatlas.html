@@ -3,12 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Kokatlas – Otomatik Tamamlamalı Sürüm</title>
+  <title>Kokatlas – Kayarak Gelen Sonuç</title>
   <style>
-  
     html, body {
       margin: 0; padding: 0; width: 100%; height: 100%;
-      overflow: hidden; background: #000; font-family: Arial, sans-serif;
+      overflow: hidden; background: #000; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
     #viewport {
       width: 100vw; height: 100vh; overflow: hidden;
@@ -16,7 +15,6 @@
     }
     #viewport:active { cursor: grabbing; }
     
-  
     #map {
       width: 500%; height: 100%; display: flex;
       transform-origin: center center;
@@ -26,73 +24,104 @@
       background: url('dunya-fiziki-haritasi-dilsiz-2196-1000-1000.jpg') center/100% 100% no-repeat;
     }
 
-    
+    #intro-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.75);
+      z-index: 999;
+      display: flex; justify-content: center; align-items: center;
+      transition: opacity 1.5s ease-out;
+    }
+
+    #start-btn {
+      padding: 15px 40px;
+      font-size: 28px;
+      font-family: 'Times New Roman', Times, serif;
+      font-weight: bold;
+      color: #000;
+      background: #fff;
+      border: 4px solid #000;
+      border-radius: 8px;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      transition: all 0.8s ease-in;
+      box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+    }
+
+    #start-btn:hover {
+      background: #f0f0f0;
+      box-shadow: 0 0 25px rgba(255, 255, 255, 0.6);
+    }
+
+    .btn-zoom-effect {
+      transform: scale(30); 
+      opacity: 0;
+    }
+
+    .fade-out {
+      opacity: 0;
+      pointer-events: none;
+    }
+
     #search-container {
       position: fixed;
-      top: 15px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 100; 
+      top: 15px; left: 50%; transform: translateX(-50%);
+      z-index: 100;
       width: 300px;
+      opacity: 0;
+      transition: opacity 1s ease 1s;
+      pointer-events: none;
+    }
+    
+    #search-container.visible {
+      opacity: 1; pointer-events: auto;
     }
 
     #search-bar {
-      background: rgba(0,0,0,0.85);
-      padding: 10px 16px;
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+      background: rgba(0,0,0,0.85); padding: 10px 16px; border-radius: 10px;
+      display: flex; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
     }
 
     #search-bar input {
-      width: 100%;
-      height: 34px;
-      border-radius: 6px;
-      border: none;
-      background: transparent;
-      color: #fff;
-      outline: none;
-      font-size: 16px;
+      width: 100%; height: 34px; border-radius: 6px; border: none;
+      background: transparent; color: #fff; outline: none; font-size: 16px;
     }
 
-    
     #suggestions {
-      background: #1a1a1a;
-      width: 100%;
-      max-height: 300px; 
-      overflow-y: auto;
-      border-radius: 0 0 10px 10px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-      display: none;
-      margin-top: 2px;
+      background: #1a1a1a; width: 100%; max-height: 300px; overflow-y: auto;
+      border-radius: 0 0 10px 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+      display: none; margin-top: 2px;
     }
 
     .suggestion-item {
-      padding: 12px 16px;
-      color: #ccc;
-      cursor: pointer;
-      border-top: 1px solid #333;
-      font-size: 14px;
+      padding: 12px 16px; color: #ccc; cursor: pointer; border-top: 1px solid #333; font-size: 14px;
       transition: background 0.2s;
     }
+    .suggestion-item:hover { background: #333; color: #fff; }
 
-    .suggestion-item:hover {
-      background: #333;
-      color: #fff;
-    }
-
-    .suggestion-item strong {
-      color: #fff; 
-    }
-
-  
     #result {
-      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-      background: #111; border: 2px solid #444; border-radius: 12px;
-      display: none; z-index: 50; max-width: 90vw; color: #fff;
+      position: fixed; 
+      top: 50%; 
+      left: 50%; 
+      transform: translate(150vw, -50%); 
+      
+      background: #111; 
+      border: 2px solid #444; 
+      border-radius: 12px;
+      z-index: 50; 
+      max-width: 90vw; 
+      color: #fff;
       box-shadow: 0 0 30px rgba(0,0,0,0.9);
+      
+      transition: transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+      
+      visibility: hidden;
     }
+    #result.active {
+      transform: translate(-50%, -50%); 
+      visibility: visible;
+    }
+
     #result img { max-width: 600px; width: 100%; border-radius: 10px 10px 0 0; display: block; }
     #info { padding: 20px; line-height: 1.6; font-size: 15px; }
     #close { position: absolute; top: 10px; right: 15px; cursor: pointer; font-size: 20px; color: #aaa; }
@@ -101,6 +130,10 @@
   </style>
 </head>
 <body>
+
+<div id="intro-overlay">
+  <button id="start-btn">Aratmaya Başla</button>
+</div>
 
 <div id="search-container">
   <div id="search-bar">
@@ -126,8 +159,8 @@
 </div>
 
 <script>
-//veir tabanı bölgesi
-  const database = {
+//=====Veritabanı bölgesi :))=====
+const database = {
   "masa": { region: "İtalya", language: "İtalyanca", original: "mensa", image: "İtalya.jpg" },
   "kapı": { region: "Orta Asya", language: "Eski Türkçe", original: "kap-", image: "Orta Asya.jpg" },
   "şehir": { region: "İran", language: "Farsça", original: "şahr", image: "Iran.jpg" },
@@ -328,7 +361,6 @@
   "final": { region: "Fransa", language: "Fransızca", original: "final", image: "Fransa.jpg" }
 };
 
-
 const map = document.getElementById('map');
 const viewport = document.getElementById('viewport');
 const input = document.getElementById('search');
@@ -339,10 +371,18 @@ const img = document.getElementById('result-img');
 const closeBtn = document.getElementById('close');
 
 
-let scale = 1;
-let translateX = -window.innerWidth;
+const introOverlay = document.getElementById('intro-overlay');
+const startBtn = document.getElementById('start-btn');
+const searchContainer = document.getElementById('search-container');
+
+
+let scale = 2.5; 
+
+let translateX = -window.innerWidth * 2; 
 let translateY = 0;
 let dragging = false;
+let introActive = true; 
+
 let lastX = 0, lastY = 0;
 
 function updateTransform() {
@@ -350,19 +390,59 @@ function updateTransform() {
 }
 updateTransform();
 
-viewport.addEventListener('mousedown', e => { dragging = true; lastX = e.clientX; lastY = e.clientY; });
+
+startBtn.addEventListener('click', () => {
+  startBtn.classList.add('btn-zoom-effect');
+  introOverlay.classList.add('fade-out');
+
+  const targetScale = 1.0;
+  const duration = 1500; 
+  const startScale = scale;
+  const startTime = performance.now();
+
+  function animateZoom(currentTime) {
+    const elapsed = currentTime - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    
+   
+    const ease = 1 - Math.pow(1 - progress, 3);
+    
+    scale = startScale - ((startScale - targetScale) * ease);
+    updateTransform();
+
+    if (progress < 1) {
+      requestAnimationFrame(animateZoom);
+    } else {
+      introOverlay.style.display = 'none';
+      introActive = false; 
+      searchContainer.classList.add('visible');
+    }
+  }
+
+  requestAnimationFrame(animateZoom);
+});
+
+
+
+viewport.addEventListener('mousedown', e => { 
+  if(introActive) return; 
+  dragging = true; lastX = e.clientX; lastY = e.clientY; 
+});
 
 window.addEventListener('mousemove', e => {
-  if (!dragging) return;
+  if (!dragging || introActive) return;
   translateX += (e.clientX - lastX);
+  
   if (scale > 1) {
     translateY += (e.clientY - lastY);
     const maxY = (window.innerHeight * scale - window.innerHeight) / 2;
     translateY = Math.min(Math.max(translateY, -maxY), maxY);
   }
+
   const w = window.innerWidth;
-  if (translateX < -2 * w) translateX += w;
+  if (translateX < -4 * w) translateX += w;
   if (translateX > 0) translateX -= w;
+
   lastX = e.clientX; lastY = e.clientY;
   updateTransform();
 });
@@ -370,12 +450,12 @@ window.addEventListener('mousemove', e => {
 window.addEventListener('mouseup', () => dragging = false);
 
 viewport.addEventListener('wheel', e => {
+  if(introActive) return;
   e.preventDefault();
   scale += e.deltaY < 0 ? 0.1 : -0.1;
   scale = Math.min(Math.max(scale, 1), 4);
   updateTransform();
 }, { passive: false });
-
 
 function searchWord(key) {
   if (database[key]) {
@@ -385,9 +465,10 @@ function searchWord(key) {
                       <strong>Coğrafya:</strong> ${d.region}<br>
                       <strong>Dil:</strong> ${d.language}<br>
                       <strong>Özgün Hâli:</strong> ${d.original}`;
-    result.style.display = 'block';
     
    
+    result.classList.add('active');
+    
     input.value = key;
     suggestionsBox.innerHTML = '';
     suggestionsBox.style.display = 'none';
@@ -396,7 +477,6 @@ function searchWord(key) {
   }
 }
 
-// enter tuşu il alakalı bunlar
 input.addEventListener('keydown', e => {
   if (e.key === 'Enter') {
     const key = input.value.trim().toLowerCase();
@@ -404,30 +484,23 @@ input.addEventListener('keydown', e => {
   }
 });
 
-// oto tamamlama kısmı :)
 input.addEventListener('input', () => {
   const query = input.value.trim().toLowerCase();
-  suggestionsBox.innerHTML = ''; 
+  suggestionsBox.innerHTML = '';
   
   if (!query) {
     suggestionsBox.style.display = 'none';
     return;
   }
 
- 
   const matches = Object.keys(database).filter(key => key.startsWith(query));
 
   if (matches.length > 0) {
     matches.forEach(match => {
       const div = document.createElement('div');
       div.className = 'suggestion-item';
-      
       div.innerHTML = `<strong>${query}</strong>${match.substring(query.length)}`; 
-      
-      div.onclick = () => {
-        searchWord(match); 
-      };
-      
+      div.onclick = () => searchWord(match);
       suggestionsBox.appendChild(div);
     });
     suggestionsBox.style.display = 'block';
@@ -436,14 +509,16 @@ input.addEventListener('input', () => {
   }
 });
 
-
 document.addEventListener('click', (e) => {
   if (!document.getElementById('search-container').contains(e.target)) {
     suggestionsBox.style.display = 'none';
   }
 });
 
-closeBtn.onclick = () => result.style.display = 'none';
+closeBtn.onclick = () => {
+ 
+  result.classList.remove('active');
+};
 
 </script>
 </body>
