@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Kokatlas – Kayarak Gelen Sonuç</title>
+  <title>Kokatlas</title>
   <style>
     html, body {
       margin: 0; padding: 0; width: 100%; height: 100%;
@@ -109,23 +109,97 @@
       border: 2px solid #444; 
       border-radius: 12px;
       z-index: 50; 
+      width: 700px;
       max-width: 90vw; 
+      height: 420px;
+      max-height: 80vh;
       color: #fff;
       box-shadow: 0 0 30px rgba(0,0,0,0.9);
       
-      transition: transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+      display: flex;
+      overflow: hidden;
       
+      transition: transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
       visibility: hidden;
     }
+
     #result.active {
-      transform: translate(-50%, -50%); 
+      transform: translate(-50%, -50%);
       visibility: visible;
     }
 
-    #result img { max-width: 600px; width: 100%; border-radius: 10px 10px 0 0; display: block; }
-    #info { padding: 20px; line-height: 1.6; font-size: 15px; }
-    #close { position: absolute; top: 10px; right: 15px; cursor: pointer; font-size: 20px; color: #aaa; }
-    #close:hover { color: #fff; }
+    .result-left {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid #333;
+    }
+
+    .result-left img {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+      border-radius: 10px 0 0 0; 
+    }
+
+    #info { 
+      padding: 15px; 
+      line-height: 1.5; 
+      font-size: 14px; 
+      overflow-y: auto;
+    }
+
+    .result-right {
+      flex: 1;
+      background: #181818;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    .context-header {
+      padding: 12px 15px;
+      background: #222;
+      border-bottom: 1px solid #333;
+      font-size: 16px;
+      font-weight: bold;
+      color: #ddd;
+    }
+
+    #context-text {
+      padding: 15px;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #ccc;
+      overflow-y: auto;
+      height: 100%;
+      text-align: justify;
+    }
+
+    #context-text::-webkit-scrollbar {
+      width: 8px;
+    }
+    #context-text::-webkit-scrollbar-track {
+      background: #2a2a2a; 
+    }
+    #context-text::-webkit-scrollbar-thumb {
+      background: #666; 
+      border-radius: 4px;
+      border: 1px solid #2a2a2a;
+    }
+    #context-text::-webkit-scrollbar-thumb:hover {
+      background: #888; 
+    }
+
+    #close { position: absolute; top: 10px; right: 15px; cursor: pointer; font-size: 20px; color: #fff; z-index: 10; background: rgba(0,0,0,0.5); padding: 2px 8px; border-radius: 5px; }
+    #close:hover { background: rgba(255,0,0,0.7); }
+
+    @media (max-width: 768px) {
+      #result { flex-direction: column; height: 80vh; width: 90vw; overflow-y: auto; }
+      .result-left, .result-right { flex: none; width: 100%; border-right: none; }
+      .result-left img { height: 180px; }
+      .result-right { height: auto; min-height: 250px; }
+    }
 
   </style>
 </head>
@@ -154,12 +228,47 @@
 
 <div id="result">
   <div id="close">✕</div>
-  <img id="result-img" />
-  <div id="info"></div>
+  
+  <div class="result-left">
+    <img id="result-img" />
+    <div id="info"></div>
+  </div>
+
+  <div class="result-right">
+    <div class="context-header">Coğrafi & Tarihsel Bağlam</div>
+    <div id="context-text"></div>
+  </div>
 </div>
 
 <script>
-//=====Veritabanı bölgesi :))=====
+const contextData = {
+  "İtalya": "Türkçenin İtalyancadan etkilenmesi, özellikle 15. yy. itibarı ile Orta Çağın son dönemlerinde Osmanlı Devleti ile İtalyan coğrafyasının Akdeniz merkezli ticaret ilişkileri sayesinde birbiri ile sosyal ve ekonomik etkileşimde bulunması ile başlamıştır. Özellikle Ceneviz ve Venedik gibi denizci ticaret devletleri, Bizans ve sonrasında da Bizans’ın var olduğu coğrafyada kısmen yerini almış olan Osmanlı Devleti ile uzun süreli ticari ve diplomatik temaslarda bulunmuştur. Bu uzun süreli kültürel etkileşimlerin doğal bir sonucu olarak ise Türkçeye birçok İtalyanca kelimenin geçmesi ve İtalyancaya da birçok Türkçe kelimenin geçmesi kaçınılmaz olmuştur.",
+  
+  "Yunanistan": "Türkçenin Yunancadan etkilenmesi Türklerin Anadolu’yu 11. yy. itibarı ile yurt edinmesi ile başlamıştır. Türklerin Anadolu coğrafyasına gelişi ile beraber Türklerin Anadolu’da bulunan Rumlar, Ermeniler vb. topluluklar ile uzun süreli kültürel etkileşimi başlamış oldu yaklaşık bin yıl boyunca Kurtuluş Savaşı sonrası yapılan nüfus mübadelesine kadar bu etkileşim hızla devam etti. Nüfus mübadelesi sonrası Yunanistan’da yaşayan Türklerin Türkiye’ye gelişi ve Anadolu’da yaşayan Rumlarınsa Yunanistan’a gitmesi ile beraber bu etkileşimin hızı ciddi ölçüde yavaşladı. Doğal olarak bu bin yıllık etkileşimin sonunda her iki dil de birbirlerinden etkilenmiştir.",
+  
+  "Orta Asya": "Türkçedeki Orta Asya kökenli kelimeler, Türklerin tarihteki ilk dönemlerinden itibaren oluşan Türklerin de zaten tarih sahnesine çıktığı coğrafya olan Orta Asya’daki yaşam tarzı ve kültürel etkileşimlerinin doğurmuş olduğu neredeyse tamamı bizzat öz Türkçeye ait olan kelimelerdir. Bu kelimeler genel itibari ile Türkçenin temel söz varlığının yani kelime hazinesinin oluşmasına katkı sağlamıştır. Tarihte Türklerle birlikte Orta Asya’da yaşamış olan birçok Türk olmayan kabilenin (Toharca konuşan kabileler, Hun konfederasyonundaki Türk olmayan kabileler vb.) tarihi süreçte Türkleşmesi ve ya Türkler içinde asimile olması ile de bu kabilelerin konuşmuş olduğu çeşitli tarihi dillerden kelimeler Türkçeye geçmiş olabilir ancak bu sözcük geçişlerini Türkçenin oluşum süreci olarak değerlendirmek daha doğru olacaktır.",
+  
+  "Türk Cumhuriyetleri": "Türkçedeki Orta Asya kökenli kelimeler, Türklerin tarihteki ilk dönemlerinden itibaren oluşan Türklerin de zaten tarih sahnesine çıktığı coğrafya olan Orta Asya’daki yaşam tarzı ve kültürel etkileşimlerinin doğurmuş olduğu neredeyse tamamı bizzat öz Türkçeye ait olan kelimelerdir. Bu kelimeler genel itibari ile Türkçenin temel söz varlığının yani kelime hazinesinin oluşmasına katkı sağlamıştır.",
+  
+  "Türk Devletleri": "Türkçedeki Orta Asya kökenli kelimeler, Türklerin tarihteki ilk dönemlerinden itibaren oluşan Türklerin de zaten tarih sahnesine çıktığı coğrafya olan Orta Asya’daki yaşam tarzı ve kültürel etkileşimlerinin doğurmuş olduğu neredeyse tamamı bizzat öz Türkçeye ait olan kelimelerdir.",
+
+  "Arap Yarımadası": "Türkçede bulunan Arap Yarımadası kökenli kelimeler Türklerin İslamiyet’i kabulü(8-10. yy.) ile başlayan dini, bilimsel ve kültürel etkileşimlerin bir sonucudur. Türklerin Arap Yarımadasındaki uzun süreli varlığı ve bölge ile ticari ve dini ilişkileri sebebi ile birçok Arap Yarımadası kökenli kelimenin Türkçeye geçmesi kaçınılmaz olmuştur.",
+  
+  "İran": "Türkçede yer alan İran kökenli kelimelerin Türkçeye geçiş süreci Türklerin Orta Asya’daki yaşamları sırasında İrani halklar(Soğdlar vb.) ile etkileşime girmesi ile başlamıştır. Ancak bu kültürel etkileşim Türklerin İran coğrafyasında devletler kurmaya başlaması ile hız kazanmıştır. Türkler bir kısmının bu İran coğrafi sahasında yaşamaya başlaması ve Selçuklu ve Osmanlı Devletlerinde Farsçanın edebiyat dili olarak görülmesi İran kökenli kelimelerin Türkçeye geçişini hızlandırmıştır.",
+  
+  "Suriye": "Türkçedeki Suriye coğrafyasıyla ilişkili kelimelerin varlığı, Türklerin İslamiyet’i kabulünden sonra Şam merkezli Arap-İslam dünyasıyla etkileşimleri sayesinde oluşmuştur. Bu süreçte din, hukuk ve şehir yaşamına ait çoğunluğu Arapça kökenli kelimeler Osmanlı Türkçesi aracılığıyla Türkçeye girmiş ve kalıcı hâle gelmiştir.",
+  
+  "Çin": "Türkçedeki Çin ile ilişkili kelime ve kavramlar, Türklerin Orta Asya’da Çin ile kurduğu erken dönem siyasî, askerî ve ticari etkileşimlere dayanır. Bu etkileşimler sonucunda özellikle diplomasi ve kültür alanlarına ait unsurlar Türkçeye girmiştir, ancak bu unsurlar erken dönemde benimsendiği için bu kelimeleri Türkçenin oluşum sürecinde de değerlendirmek yanlış olmayacaktır. Bu durum, Çin coğrafyasının Türkçenin en eski etkileşim alanlarından biri olduğunu bizlere göstermektedir.",
+  
+  "Fransa": "Türkçenin Fransa kökenli kelime varlığı, 18. ve 19. yüzyıllarda Osmanlı Devleti’nin Batı’ya yönelme ve modernleşme politikası sebebi ile ortaya çıkmıştır. Diplomasi, askerî düzen, bilim ve sanat gibi alanlarda Fransızcanın değer kazanması sonucunda birçok kelime Fransızcadan Türkçeye girmiş, bu kelimelerse zaman içerisinde Türkçede kalıcı hale gelmiştir.",
+  
+  "Anadolu": "Türkçenin Anadolu ile ilişkili kelime varlığı, Türklerin 11. yüzyıldan itibaren Anadolu’ya yerleşmesi ve burada yaşayan yerli halklarla kurduğu etkileşimler sonucunda oluşmuştur. Bu süreçte Anadolu’daki eski kültürlerin, yer adlarının ve günlük yaşama ait bazı kavramların Türkçeye uyarlanmasıyla Türk dili zenginleşmiştir ve böylece Anadolu Türkçesi kendine özgü bir karakter kazanarak günümüz Türkçesinin oluşumunda büyük katkı sağlamıştır.",
+  
+  "İngiltere": "Türkçedeki İngiltere kökenli kelimelerin Türkçeye geçişi 20. yy itibarı ile teknoloji bilim, sanat gibi alanların ve Küresel iletişimde 20. yy. itibarı ile İngilizcenin uluslararası küresel bir dil kabul edilişi ile başlamıştır. Birçok kelimenin günümüzde de halen İngilizceden Türkççeye geçişi devam etmektedir.",
+
+  "Orta Doğu": "Türkçede bulunan Orta Doğu ve Arap Yarımadası kökenli kelimeler Türklerin İslamiyet’i kabulü ile başlayan dini, bilimsel ve kültürel etkileşimlerin bir sonucudur. Bölge ile ticari ve dini ilişkiler sebebi ile birçok kelimenin Türkçeye geçmesi kaçınılmaz olmuştur."
+};
+
 const database = {
   "masa": { region: "İtalya", language: "İtalyanca", original: "mensa", image: "İtalya.jpg" },
   "kapı": { region: "Orta Asya", language: "Eski Türkçe", original: "kap-", image: "Orta Asya.jpg" },
@@ -370,14 +479,13 @@ const info = document.getElementById('info');
 const img = document.getElementById('result-img');
 const closeBtn = document.getElementById('close');
 
+const contextText = document.getElementById('context-text');
 
 const introOverlay = document.getElementById('intro-overlay');
 const startBtn = document.getElementById('start-btn');
 const searchContainer = document.getElementById('search-container');
 
-
 let scale = 2.5; 
-
 let translateX = -window.innerWidth * 2; 
 let translateY = 0;
 let dragging = false;
@@ -389,7 +497,6 @@ function updateTransform() {
   map.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
 }
 updateTransform();
-
 
 startBtn.addEventListener('click', () => {
   startBtn.classList.add('btn-zoom-effect');
@@ -404,7 +511,6 @@ startBtn.addEventListener('click', () => {
     const elapsed = currentTime - startTime;
     const progress = Math.min(elapsed / duration, 1);
     
-   
     const ease = 1 - Math.pow(1 - progress, 3);
     
     scale = startScale - ((startScale - targetScale) * ease);
@@ -421,7 +527,6 @@ startBtn.addEventListener('click', () => {
 
   requestAnimationFrame(animateZoom);
 });
-
 
 
 viewport.addEventListener('mousedown', e => { 
@@ -466,7 +571,20 @@ function searchWord(key) {
                       <strong>Dil:</strong> ${d.language}<br>
                       <strong>Özgün Hâli:</strong> ${d.original}`;
     
-   
+    let regionKey = d.region;
+    
+    if (d.region.includes("Türk Cumhuriyetleri")) regionKey = "Türk Cumhuriyetleri";
+    else if (d.region.includes("Türk Devletleri")) regionKey = "Türk Devletleri";
+    else if (d.region.includes("İran")) regionKey = "İran"; 
+
+    if (contextData[regionKey]) {
+      contextText.innerText = contextData[regionKey];
+    } else if (contextData[d.region]) {
+      contextText.innerText = contextData[d.region];
+    } else {
+      contextText.innerText = "Bu bölge için detaylı tarihsel bağlam bilgisi bulunamadı.";
+    }
+
     result.classList.add('active');
     
     input.value = key;
@@ -516,7 +634,6 @@ document.addEventListener('click', (e) => {
 });
 
 closeBtn.onclick = () => {
- 
   result.classList.remove('active');
 };
 
